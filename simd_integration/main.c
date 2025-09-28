@@ -4,6 +4,8 @@
 #include <time.h>
 
 // ASM kernel
+extern void matvec_x86_64_asm(int n, float* A, float* x, float* y);
+extern void matvec_xmm_avx2_asm(int n, float* A, float* x, float* y);
 extern void matvec_ymm_avx2_asm(int n, float* A, float* x, float* y);
 
 
@@ -33,10 +35,12 @@ int main() {
 	float* A = (float*)malloc(bytesA);
 	float* X = (float*)malloc(bytesV);
 	float* Y_c = (float*)malloc(bytesV);
-	float* Y_asm = (float*)malloc(bytesV);
+	float* Y_x86_64 = (float*)malloc(bytesV);
+	float* Y_xmm = (float*)malloc(bytesV);
+	float* Y_ymm = (float*)malloc(bytesV);
 
-	double exec_time_c[RUNS], exec_time_asm[RUNS];
-	double exec_time_ave_c = 0, exec_time_ave_asm = 0;
+	double exec_time_c[RUNS], exec_time_x86_64[RUNS], exec_time_xmm[RUNS], exec_time_ymm[RUNS];
+	double exec_time_ave_c = 0, exec_time_ave_x86_64 = 0, exec_time_ave_xmm = 0, exec_time_ave_ymm = 0;
 
 	init_data( A, X,n);
 
@@ -52,26 +56,41 @@ int main() {
 
 		// Run and get execution time of each kernel function
 		exec_time_c[curr_run] = time_run(matvec_c, n, A, X, Y_c);
-		exec_time_asm[curr_run] = time_run(matvec_ymm_avx2_asm, n, A, X, Y_asm);
+		exec_time_x86_64[curr_run] = time_run(matvec_x86_64_asm, n, A, X, Y_x86_64);
+		exec_time_xmm[curr_run] = time_run(matvec_xmm_avx2_asm, n, A, X, Y_xmm);
+		exec_time_ymm[curr_run] = time_run(matvec_ymm_avx2_asm, n, A, X, Y_ymm);
 		exec_time_ave_c += exec_time_c[curr_run];
-		exec_time_ave_asm += exec_time_asm[curr_run];
+		exec_time_ave_x86_64 += exec_time_x86_64[curr_run];
+		exec_time_ave_xmm += exec_time_xmm[curr_run];
+		exec_time_ave_ymm += exec_time_ymm[curr_run];
+
 
 		printf("kernel (C  ):");
 		print_array(16, Y_c);
+		printf("kernel (x86):");
+		print_array(16, Y_x86_64);
+		printf("kernel (xmm):");
+		print_array(16, Y_xmm);
 		printf("kernel (ymm):");
-		print_array(16, Y_asm);
+		print_array(16, Y_ymm);
 
 
 		printf("Execution time (C  ): %f ms\n", exec_time_c[curr_run]);
-		printf("Execution time (ymm): %f ms\n", exec_time_asm[curr_run]);
+		printf("Execution time (x86): %f ms\n", exec_time_x86_64[curr_run]);
+		printf("Execution time (xmm): %f ms\n", exec_time_xmm[curr_run]);
+		printf("Execution time (ymm): %f ms\n", exec_time_ymm[curr_run]);
 	}
 
 	exec_time_ave_c /= RUNS;
-	exec_time_ave_asm /= RUNS;
+	exec_time_ave_x86_64 /= RUNS;
+	exec_time_ave_xmm /= RUNS;
+	exec_time_ave_ymm /= RUNS;
 
-	puts("All runs finished successfully with equal output.");
-	printf("\nAverage execution time (C  ): %f ms\n", exec_time_ave_c);
-	printf("Average execution time (ymm): %f ms\n", exec_time_ave_asm);
+	puts("All runs finished successfully with equal output.\n");
+	printf("Average execution time (C  ): %f ms\n", exec_time_ave_c);
+	printf("Average execution time (x86): %f ms\n", exec_time_ave_x86_64);
+	printf("Average execution time (xmm): %f ms\n", exec_time_ave_xmm);
+	printf("Average execution time (ymm): %f ms\n", exec_time_ave_ymm);
 
 	return 0;
 }
@@ -90,7 +109,7 @@ void matvec_c(int n, float* A, float* x, float* y) {
 void print_array(int n, float arr[]) {
 	int i;
 	for (i = 0; i < n; i++)
-		printf("%.1f ", arr[i]);
+		printf("%.3f ", arr[i]);
 	printf("\n");
 }
 

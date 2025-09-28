@@ -23,10 +23,11 @@
     <CustomBuild Include="asmfunc3.asm">
       <Filter>Source Files</Filter>
     </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="asmfunc2.asm">
+    <CustomBuild Include="asmfunc2.asm">
       <Filter>Source Files</Filter>
-    </None>
+    </CustomBuild>
+    <CustomBuild Include="asmfunc1.asm">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

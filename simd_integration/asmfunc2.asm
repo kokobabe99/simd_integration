@@ -13,6 +13,6 @@ section .text
 global matvec_xmm_avx2_asm
 
 matvec_xmm_avx2_asm:
-
+    ret
      
    
