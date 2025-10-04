@@ -8,7 +8,8 @@ extern void matvec_x86_64_asm(int n, float* A, float* x, float* y);
 extern void matvec_xmm_avx2_asm(int n, float* A, float* x, float* y);
 extern void matvec_ymm_avx2_asm(int n, float* A, float* x, float* y);
 extern void matvec_xmm_avx2_asm_v2(int n, float* A, float* x, float* y);
-boolean Equality(float a, float b, size_t size);
+extern void print_first_last(const char* name, float* y, int n);
+
 
 
 
@@ -22,13 +23,15 @@ double time_run(void (*func)(int, float*, float*, float*),
 // Macros for n
 #define TWO_TO_TEN 1 << 10
 #define TWO_TO_THIRTEEN 1 << 13
-#define TWO_TO_FOURTEEN 1 << 15
+#define TWO_TO_FOURTEEN 1 << 14
+#define TWO_TO_FIFTEEN 1 << 15
+#define ONE_THOUSAND_THREE 1003
 
 // Macro for total number of runs
 #define RUNS 30
 
 int main() {
-	int n = TWO_TO_FOURTEEN;
+	int n = TWO_TO_THIRTEEN;
 
 
 	size_t bytesA = (size_t)n * (size_t)n * sizeof(float);
@@ -77,24 +80,29 @@ int main() {
 		exec_time_ave_ymm += exec_time_ymm[curr_run];
 		exec_time_ave_xmm_v2 += exec_time_xmm_v2[curr_run];
 
-
+		printf("First 20 for Correctness check");
 		printf("kernel (C  ):");
 		print_array(16, Y_c);
 		printf("kernel (x86):");
 		print_array(16, Y_x86_64);
 		printf("kernel (xmm):");
-		print_array(16, Y_xmm);
+		print_array(16, y_xmm_v2);
 		printf("kernel (ymm):");
 		print_array(16, Y_ymm);
-		printf("kernel (xmm_v2):");
-		print_array(16, y_xmm_v2);
+		//printf("kernel (xmm_v2):");
+		//print_array(16, y_xmm_v2);
+		printf("\n");
+		printf("last 3 for Correctness check");
+		print_first_last("kernel (C  ):", Y_c, n);
+		print_first_last("kernel (x86):", Y_x86_64, n);
+		print_first_last("kernel (xmm):", y_xmm_v2, n);
+		print_first_last("kernel (ymm)", Y_ymm, n);
 
 
 		printf("Execution time (C  ): %f ms\n", exec_time_c[curr_run]);
 		printf("Execution time (x86): %f ms\n", exec_time_x86_64[curr_run]);
-		printf("Execution time (xmm): %f ms\n", exec_time_xmm[curr_run]);
+		printf("Execution time (xmm): %f ms\n", exec_time_xmm_v2[curr_run]);
 		printf("Execution time (ymm): %f ms\n", exec_time_ymm[curr_run]);
-		printf("Execution time (xmm_v2): %f ms\n", exec_time_xmm_v2[curr_run]);
 		//// Check if Z_c and Z_asm are equal
 		// To speed up process, only check first 10 elements
 		//int equal = memcmp(y_xmm_v2, y_xmm_v2, sizeof(float) * n) == 0;
@@ -135,9 +143,9 @@ int main() {
 	puts("All runs finished successfully with equal output.\n");
 	printf("Average execution time (C  ): %f ms\n", exec_time_ave_c);
 	printf("Average execution time (x86): %f ms\n", exec_time_ave_x86_64);
-	printf("Average execution time (xmm): %f ms\n", exec_time_ave_xmm);
+	printf("Average execution time (xmm): %f ms\n", exec_time_ave_xmm_v2);
 	printf("Average execution time (ymm): %f ms\n", exec_time_ave_ymm);
-	printf("Average execution time (xmm_v2): %f ms\n", exec_time_ave_xmm_v2);
+	//printf("Average execution time (xmm_v2): %f ms\n", exec_time_ave_xmm_v2);
 
 	return 0;
 }
@@ -189,8 +197,14 @@ double time_run(void (*func)(int,float*, float*, float*),
 	return exec_time;
 }
 
+void print_first_last(const char* name, float* y, int n) {
+	printf("%s (first 3): ", name);
+	for (int i = 0; i < 3 && i < n; ++i)
+		printf("%.3f ", y[i]);
 
-boolean Equality(float a, float b, float epsilon)
-{
-	return fabs(a - b) < epsilon;
+	printf("... (last 3): ");
+	for (int i = n - 3; i < n; ++i)
+		if (i >= 0)
+			printf("%.3f ", y[i]);
+	printf("\n");
 }

@@ -13,6 +13,9 @@ section .text
 global matvec_x86_64_asm
 
 matvec_x86_64_asm:
+    push r12
+    push rdi
+    push rsi
     xor rsi, rsi ;outer loop counter i
 
 loop_outer:
@@ -39,5 +42,8 @@ store:
     jl loop_outer
 
 done:
-    ret     
+    pop rsi
+    pop rdi
+    pop r12
+    ret       
    
