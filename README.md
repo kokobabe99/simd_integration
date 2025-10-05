@@ -260,6 +260,21 @@ loop_inner:
 		print_first_last("kernel (x86):", Y_x86_64, n);
 		print_first_last("kernel (xmm):", y_xmm_v2, n);
 		print_first_last("kernel (ymm)", Y_ymm, n);
+
+
+void print_first_last(const char* name, float* y, int n) {
+	printf("%s (first 20): ", name);
+	for (int i = 0; i < 3 && i < n; ++i)
+		printf("%.3f ", y[i]);
+
+	printf("... (last 3): ");
+	for (int i = n - 3; i < n; ++i)
+		if (i >= 0)
+			printf("%.3f ", y[i]);
+	printf("\n");
+}
+
+
 ```
 
 ## Comparative Results
@@ -268,16 +283,26 @@ loop_inner:
 
 ## Analysis
 
-Why SIMD is faster: data-level parallelism (4-wide/8-wide), reduced loop overhead, contiguous loads.
+The SIMD YMM kernel consistently outperformed both the scalar (x86) and SIMD XMM implementations — achieving up to ~28× speedup compared to the baseline C version for small-to-medium matrices.
 
-XMM vs YMM: wider vectors, reduction cost, memory-bandwidth limits.
+The SIMD kernels achieve significant acceleration because each instruction processes multiple data elements in parallel.
+While the scalar C implementation handles one float at a time, the XMM version processes 4 floats per iteration (128-bit), and the YMM version processes 8 floats per iteration (256-bit).
+This reduces loop iterations, branch overhead, and instruction decoding, allowing the CPU’s wide vector pipelines and execution units to operate at full efficiency.
+In addition, SIMD instructions perform contiguous memory accesses, improving cache locality and prefetching behavior.
 
-Impact of boundary handling: tail fraction shrinks as n grows.
+Within the XMM/YMM kernel, two key operations make vector reduction efficient:
 
-Effects of alignment (vmovups vs vmovaps) and AVX↔SSE transition (mitigated with VEX forms and vzeroupper).
+`vextractf128` extracts the upper 128-bit lane of a 256-bit YMM register, enabling the combination of the upper and lower halves of the vector directly in registers.
 
-Floating-point summation order → bitwise differences; hence tolerance-based checks.
+`vhaddps` performs horizontal addition inside each vector, summing elements pairwise without scalar loops.
+By chaining two `vhaddps` instructions, the kernel quickly reduces eight partial sums to a single scalar value, avoiding costly memory stores or extra loop passes.
+
+Overall, these operations allow the AVX2 version to fully exploit data-level parallelism while keeping all arithmetic within registers — leading to a 10+× speedup over the scalar baseline, depending on matrix size and memory alignment.
+
+`Cache Efficiency` SIMD kernels reuse contiguous memory regions effectively.Streaming access patterns benefit from hardware prefetchers, minimizing cache misses.
 
 ---
+
+## Troubleshooting
 
 ### What happened with MEMCMP ?
