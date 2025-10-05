@@ -280,10 +280,4 @@ Floating-point summation order → bitwise differences; hence tolerance-based ch
 
 ---
 
-## Insights
-
----
-
-## Troubleshooting
-
 ### What happened with MEMCMP ?
