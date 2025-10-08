@@ -70,6 +70,7 @@ done:
     pop rsi
     pop rdi
     pop r12
+    vzeroupper
     ret     
    
    

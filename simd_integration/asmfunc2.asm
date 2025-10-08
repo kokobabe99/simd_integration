@@ -42,6 +42,7 @@ store:
     jl loop_outer
 
 done:
+    vzeroupper
     ret     
    
    

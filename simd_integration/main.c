@@ -1,7 +1,12 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
 #include <time.h>
+#include <math.h>
+#include <stdbool.h>
+
+
+#define EPSILON 1e-5f 
 
 // ASM kernel
 extern void matvec_x86_64_asm(int n, float* A, float* x, float* y);
@@ -9,9 +14,8 @@ extern void matvec_xmm_avx2_asm(int n, float* A, float* x, float* y);
 extern void matvec_ymm_avx2_asm(int n, float* A, float* x, float* y);
 extern void matvec_xmm_avx2_asm_v2(int n, float* A, float* x, float* y);
 extern void print_first_last(const char* name, float* y, int n);
-
-
-
+extern boolean compare_results(const char* name_a, const float* A,
+	const char* name_b, const float* B, int n);
 
 // Helper functions
 void print_array(int, float[]);
@@ -31,7 +35,7 @@ double time_run(void (*func)(int, float*, float*, float*),
 #define RUNS 30
 
 int main() {
-	int n = TWO_TO_THIRTEEN;
+	int n = ONE_THOUSAND_THREE;
 
 
 	size_t bytesA = (size_t)n * (size_t)n * sizeof(float);
@@ -80,7 +84,7 @@ int main() {
 		exec_time_ave_ymm += exec_time_ymm[curr_run];
 		exec_time_ave_xmm_v2 += exec_time_xmm_v2[curr_run];
 
-		printf("First 20 for Correctness check");
+		printf("First 20 for Correctness check\n");
 		printf("kernel (C  ):");
 		print_array(16, Y_c);
 		printf("kernel (x86):");
@@ -89,44 +93,46 @@ int main() {
 		print_array(16, y_xmm_v2);
 		printf("kernel (ymm):");
 		print_array(16, Y_ymm);
-		//printf("kernel (xmm_v2):");
-		//print_array(16, y_xmm_v2);
 		printf("\n");
-		printf("last 3 for Correctness check");
+		printf("last 3 for Correctness check\n");
 		print_first_last("kernel (C  ):", Y_c, n);
 		print_first_last("kernel (x86):", Y_x86_64, n);
 		print_first_last("kernel (xmm):", y_xmm_v2, n);
-		print_first_last("kernel (ymm)", Y_ymm, n);
+		print_first_last("kernel (ymm):", Y_ymm, n);
 
 
 		printf("Execution time (C  ): %f ms\n", exec_time_c[curr_run]);
 		printf("Execution time (x86): %f ms\n", exec_time_x86_64[curr_run]);
 		printf("Execution time (xmm): %f ms\n", exec_time_xmm_v2[curr_run]);
 		printf("Execution time (ymm): %f ms\n", exec_time_ymm[curr_run]);
-		//// Check if Z_c and Z_asm are equal
-		// To speed up process, only check first 10 elements
-		//int equal = memcmp(y_xmm_v2, y_xmm_v2, sizeof(float) * n) == 0;
-		//if (equal) {
-		//	puts("The C and x86-64 kernel outputs are equal for the first 10 values.\n");
-		//}
-		//else {
-		//	puts("WARNING: The C and x86-64 kernel outputs are not equal.\n");
-		//	return 1;
-		//}
 
-		
-		
+		boolean res = compare_results("C", Y_c, "X86",Y_x86_64, n);
+		if (res) {
+			puts("The C and X86 kernel outputs are equal\n");
+		}
+		else {
+			puts("WARNING: The C and X86 kernel outputs are not equal.\n");
+			return 1;
+		}
 
-		//if (*y_xmm_v2 == *Y_ymm) {
-		//	puts("The C and x86-64 kernel outputs are equal for the first 10 values.\n");
-		//}
-		//else {
-		//	puts("WARNING: The C and x86-64 kernel outputs are not equal.\n");
-		//	return 1;
-		//}
-		//printf("\n=== Run %02d of %d ===\n", curr_run + 1, RUNS);
+		res = compare_results("C", Y_c, "xmm", y_xmm_v2, n);
+		if (res) {
+			puts("The C and XMM kernel outputs are equal\n");
+		}
+		else {
+			puts("WARNING: The C and XMM kernel outputs are not equal.\n");
+			return 1;
+		}
 
-
+		res = compare_results("C", Y_c, "ymm", Y_ymm, n);
+		if (res) {
+			puts("The C and ymm kernel outputs are equal\n");
+		}
+		else {
+			puts("WARNING: The C and ymm kernel outputs are not equal.\n");
+			return 1;
+		}
+	
 	}
 
 	exec_time_ave_c /= RUNS;
@@ -150,15 +156,32 @@ int main() {
 	return 0;
 }
 
-void matvec_c(int n, float* A, float* x, float* y) {
+void matvec_c(int n, const float* A, const float* x, float* y) {
 	for (int i = 0; i < n; ++i) {
-		double s = 0.0;                   
-		float* row = A + (size_t)i * n;
-		for (int j = 0; j < n; ++j)
+		const float* row = A + (size_t)i * n;
+		double s = 0.0;  // accumulate in double for numerical stability
+		for (int j = 0; j < n; ++j) {
 			s += (double)row[j] * (double)x[j];
+		}
 		y[i] = (float)s;
 	}
 }
+
+void init_data(float* A, float* x, int n) {
+	// Matrix A: A[i*n + j] = 1 / ((i+1) + (j+1) - 1) = 1 / (i + j + 1)
+	for (int i = 0; i < n; ++i) {
+		float* row = A + (size_t)i * n;
+		for (int j = 0; j < n; ++j) {
+			row[j] = (float)(1.0 / (double)(i + j + 1));
+		}
+	}
+
+	// Vector x: x[j] = sin(j*0.01) * cos(j*0.007) + 1.0
+	for (int j = 0; j < n; ++j) {
+		x[j] = (float)(sin((double)j * 0.01) * cos((double)j * 0.007) + 1.0);
+	}
+}
+
 
 // Print the first n elements of arr
 void print_array(int n, float arr[]) {
@@ -167,17 +190,6 @@ void print_array(int n, float arr[]) {
 		printf("%.3f ", arr[i]);
 	printf("\n");
 }
-
-void init_data(float* A, float* x, int n) {
-	for (int i = 0; i < n; ++i) {
-		float* row = A + (size_t)i * n;
-		for (int j = 0; j < n; ++j) {
-			row[j] = 1.0f / (float)(i + j + 1);
-		}
-	}
-	for (int j = 0; j < n; ++j) x[j] = 1.0f + 0.001f * (float)j;
-}
-
 
 
 double time_run(void (*func)(int,float*, float*, float*),
@@ -207,4 +219,39 @@ void print_first_last(const char* name, float* y, int n) {
 		if (i >= 0)
 			printf("%.3f ", y[i]);
 	printf("\n");
+}
+
+
+static inline boolean nearly_equal(float a, float b, float eps) {
+	float diff = fabsf(a - b);
+	float scale = fmaxf(1.0f, fmaxf(fabsf(a), fabsf(b)));
+	return diff <= eps * scale;
+}
+
+boolean compare_results(const char* name_a,  const float* A,
+	const char* name_b, const float* B, int n) {
+	int tail_start = n > 3 ? n - 3 : 0;
+
+	printf("kernel (%s) first3: ", name_a);
+	for (int i = 0; i < 3 && i < n; ++i) printf("%.6f ", A[i]);
+	printf(" | last3: ");
+	for (int i = tail_start; i < n; ++i) printf("%.6f ", A[i]);
+	printf("\n");
+
+	printf("kernel (%s) first3: ", name_b);
+	for (int i = 0; i < 3 && i < n; ++i) printf("%.6f ", B[i]);
+	printf(" | last3: ");
+	for (int i = tail_start; i < n; ++i) printf("%.6f ", B[i]);
+	printf("\n");
+
+	for (int i = 0; i < n; ++i) {
+		if (!nearly_equal(A[i], B[i], EPSILON)) {
+			printf("Mismatch at %d: %s=%.8f, %s=%.8f (eps=%g)\n",
+				i, name_a, A[i], name_b, B[i], EPSILON);
+			return false;	
+		}
+	}
+	printf("%s vs %s: numerically equal within epsilon=%g\n",
+		name_a, name_b, EPSILON);
+	return true;
 }
