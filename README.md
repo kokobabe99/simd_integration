@@ -261,21 +261,20 @@ loop_inner:
 
 ```C
 
-
 boolean compare_results(const char* name_a,  const float* A,
 	const char* name_b, const float* B, int n) {
 	int tail_start = n > 3 ? n - 3 : 0;
 
 	printf("kernel (%s) first3: ", name_a);
-	for (int i = 0; i < 3 && i < n; ++i) printf("%.6f ", A[i]);
+	for (int i = 0; i < 3 && i < n; ++i) printf("%.4f ", A[i]);
 	printf(" | last3: ");
-	for (int i = tail_start; i < n; ++i) printf("%.6f ", A[i]);
+	for (int i = tail_start; i < n; ++i) printf("%.4f ", A[i]);
 	printf("\n");
 
 	printf("kernel (%s) first3: ", name_b);
-	for (int i = 0; i < 3 && i < n; ++i) printf("%.6f ", B[i]);
+	for (int i = 0; i < 3 && i < n; ++i) printf("%.4f ", B[i]);
 	printf(" | last3: ");
-	for (int i = tail_start; i < n; ++i) printf("%.6f ", B[i]);
+	for (int i = tail_start; i < n; ++i) printf("%.4f ", B[i]);
 	printf("\n");
 
 	for (int i = 0; i < n; ++i) {
