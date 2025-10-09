@@ -21,8 +21,8 @@ Each kernel is to perform a `matrix vector product`.matrix-vector product `y = A
      ├── README.md
      ├── simd_integration
      │   ├── asmfunc1.asm          (x86)
-     │   ├── asmfunc2.asm          (SIMD XMM)
-     │   ├── asmfunc3.asm          (SIMD YMM)
+     │   ├── asmfunc3.asm          (SIMD XMM)
+     │   ├── asmfunc4.asm          (SIMD YMM)
      │   ├── main.c (main program)
      │   ├── simd_integration.vcxproj
      │   └── simd_integration.vcxproj.filters
@@ -86,12 +86,12 @@ Matrix sizes: n ∈ {1003,2^10,2^13,2^14} RUN in 30 times
 #define RUNS 10
 ```
 
-| n            |      C (ms) |   x86 (ms) |  XMM (ms) |  YMM (ms) | x86 Speedup VS C | XMM Speedup VS C | YMM Speedup VS C |
-| ------------ | ----------: | ---------: | --------: | --------: | ---------------: | ---------------: | ---------------: |
-| 1003         |     521.193 |    166.493 |    28.962 |    18.537 |            3.13× |           18.00× |           28.12× |
-| 2^10 (1024)  |     411.454 |    122.419 |    53.028 |    32.243 |            3.36× |            7.76× |           12.76× |
-| 2^13 (8192)  |  25,186.700 |  7,837.390 | 2,255.319 | 1,971.116 |            3.21× |           11.17× |           12.78× |
-| 2^14 (16384) | 101,722.746 | 31,554.394 | 9,077.505 | 7,961.411 |            3.22× |           11.21× |           12.78× |
+| n            |      C (ms) |   x86 (ms) |   XMM (ms) |  YMM (ms) | x86 Speedup VS C | XMM Speedup VS C | YMM Speedup VS C |
+| ------------ | ----------: | ---------: | ---------: | --------: | ---------------: | ---------------: | ---------------: |
+| 2^10 (1024)  |     430.762 |    156.672 |     30.243 |    30.947 |            2.75× |           14.24× |           13.92× |
+| 2^13 (8192)  |  25,124.121 |  7,881.562 |  2,400.416 | 2,114.746 |            3.19× |           10.47× |           11.88× |
+| 2^14 (16384) | 100,416.107 | 31,844.125 | 10,230.686 | 8,981.545 |            3.15× |            9.82× |           11.18× |
+| 1003         |     450.037 |    133.948 |     36.630 |    26.653 |            3.36× |           12.29× |           16.88× |
 
 - 2^10
 
@@ -260,34 +260,34 @@ loop_inner:
 ### Correctness check
 
 ```C
-		printf("First 20 for Correctness check");
-		printf("kernel (C  ):");
-		print_array(16, Y_c);
-		printf("kernel (x86):");
-		print_array(16, Y_x86_64);
-		printf("kernel (xmm):");
-		print_array(16, y_xmm_v2);
-		printf("kernel (ymm):");
-		print_array(16, Y_ymm);
-		//printf("kernel (xmm_v2):");
-		//print_array(16, y_xmm_v2);
-		printf("last 3 for Correctness check");
-		print_first_last("kernel (C  ):", Y_c, n);
-		print_first_last("kernel (x86):", Y_x86_64, n);
-		print_first_last("kernel (xmm):", y_xmm_v2, n);
-		print_first_last("kernel (ymm)", Y_ymm, n);
 
 
-void print_first_last(const char* name, float* y, int n) {
-	printf("%s (first 20): ", name);
-	for (int i = 0; i < 3 && i < n; ++i)
-		printf("%.3f ", y[i]);
+boolean compare_results(const char* name_a,  const float* A,
+	const char* name_b, const float* B, int n) {
+	int tail_start = n > 3 ? n - 3 : 0;
 
-	printf("... (last 3): ");
-	for (int i = n - 3; i < n; ++i)
-		if (i >= 0)
-			printf("%.3f ", y[i]);
+	printf("kernel (%s) first3: ", name_a);
+	for (int i = 0; i < 3 && i < n; ++i) printf("%.6f ", A[i]);
+	printf(" | last3: ");
+	for (int i = tail_start; i < n; ++i) printf("%.6f ", A[i]);
 	printf("\n");
+
+	printf("kernel (%s) first3: ", name_b);
+	for (int i = 0; i < 3 && i < n; ++i) printf("%.6f ", B[i]);
+	printf(" | last3: ");
+	for (int i = tail_start; i < n; ++i) printf("%.6f ", B[i]);
+	printf("\n");
+
+	for (int i = 0; i < n; ++i) {
+		if (!nearly_equal(A[i], B[i], EPSILON)) {
+			printf("Mismatch at %d: %s=%.8f, %s=%.8f (eps=%g)\n",
+				i, name_a, A[i], name_b, B[i], EPSILON);
+			return false;
+		}
+	}
+	printf("%s vs %s: numerically equal within epsilon=%g\n",
+		name_a, name_b, EPSILON);
+	return true;
 }
 
 ```
@@ -339,34 +339,6 @@ static inline boolean nearly_equal(float a, float b, float eps) {
 	float diff = fabsf(a - b);
 	float scale = fmaxf(1.0f, fmaxf(fabsf(a), fabsf(b)));
 	return diff <= eps * scale;
-}
-
-boolean compare_results(const char* name_a,  const float* A,
-	const char* name_b, const float* B, int n) {
-	int tail_start = n > 3 ? n - 3 : 0;
-
-	printf("kernel (%s) first3: ", name_a);
-	for (int i = 0; i < 3 && i < n; ++i) printf("%.6f ", A[i]);
-	printf(" | last3: ");
-	for (int i = tail_start; i < n; ++i) printf("%.6f ", A[i]);
-	printf("\n");
-
-	printf("kernel (%s) first3: ", name_b);
-	for (int i = 0; i < 3 && i < n; ++i) printf("%.6f ", B[i]);
-	printf(" | last3: ");
-	for (int i = tail_start; i < n; ++i) printf("%.6f ", B[i]);
-	printf("\n");
-
-	for (int i = 0; i < n; ++i) {
-		if (!nearly_equal(A[i], B[i], EPSILON)) {
-			printf("Mismatch at %d: %s=%.8f, %s=%.8f (eps=%g)\n",
-				i, name_a, A[i], name_b, B[i], EPSILON);
-			return false;
-		}
-	}
-	printf("%s vs %s: numerically equal within epsilon=%g\n",
-		name_a, name_b, EPSILON);
-	return true;
 }
 ```
 
