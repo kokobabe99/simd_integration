@@ -51,13 +51,29 @@ A **matrix–vector product** (also known as **matrix–vector multiplication**)
 ### (C)
 
 ```C
-void matvec_c(int n, float* A, float* x, float* y) {
+void matvec_c(int n, const float* A, const float* x, float* y) {
 	for (int i = 0; i < n; ++i) {
-		double s = 0.0;
-		float* row = A + (size_t)i * n;
-		for (int j = 0; j < n; ++j)
+		const float* row = A + (size_t)i * n;
+		double s = 0.0;  // accumulate in double for numerical stability
+		for (int j = 0; j < n; ++j) {
 			s += (double)row[j] * (double)x[j];
+		}
 		y[i] = (float)s;
+	}
+}
+
+void init_data(float* A, float* x, int n) {
+	// Matrix A: A[i*n + j] = 1 / ((i+1) + (j+1) - 1) = 1 / (i + j + 1)
+	for (int i = 0; i < n; ++i) {
+		float* row = A + (size_t)i * n;
+		for (int j = 0; j < n; ++j) {
+			row[j] = (float)(1.0 / (double)(i + j + 1));
+		}
+	}
+
+	// Vector x: x[j] = sin(j*0.01) * cos(j*0.007) + 1.0
+	for (int j = 0; j < n; ++j) {
+		x[j] = (float)(sin((double)j * 0.01) * cos((double)j * 0.007) + 1.0);
 	}
 }
 ```
@@ -274,7 +290,6 @@ void print_first_last(const char* name, float* y, int n) {
 	printf("\n");
 }
 
-
 ```
 
 ## Comparative Results
@@ -305,4 +320,54 @@ Overall, these operations allow the AVX2 version to fully exploit data-level par
 
 ## Troubleshooting
 
-### What happened with MEMCMP ?
+### What happened with MEMCMP not equal but EPSILON works?
+
+In this project we first tried to verify correctness by comparing the output vectors byte-by-byte:
+
+```C
+	memcmp(Y_c, Y_simd, sizeof(float)*n)
+```
+
+This failed even when the printed numbers looked the same. The reason is that `floating-point` results depend on accumulation/order and rounding
+
+Since `memcmp` does a strict byte-for-byte comparison, any tiny rounding difference makes it report `not equal`.
+
+Fix: compare numerically with a `epsilon` instead of bitwise equality. We treat two floats as equal if their difference is within a small absolute/relative bound:
+
+```C
+static inline boolean nearly_equal(float a, float b, float eps) {
+	float diff = fabsf(a - b);
+	float scale = fmaxf(1.0f, fmaxf(fabsf(a), fabsf(b)));
+	return diff <= eps * scale;
+}
+
+boolean compare_results(const char* name_a,  const float* A,
+	const char* name_b, const float* B, int n) {
+	int tail_start = n > 3 ? n - 3 : 0;
+
+	printf("kernel (%s) first3: ", name_a);
+	for (int i = 0; i < 3 && i < n; ++i) printf("%.6f ", A[i]);
+	printf(" | last3: ");
+	for (int i = tail_start; i < n; ++i) printf("%.6f ", A[i]);
+	printf("\n");
+
+	printf("kernel (%s) first3: ", name_b);
+	for (int i = 0; i < 3 && i < n; ++i) printf("%.6f ", B[i]);
+	printf(" | last3: ");
+	for (int i = tail_start; i < n; ++i) printf("%.6f ", B[i]);
+	printf("\n");
+
+	for (int i = 0; i < n; ++i) {
+		if (!nearly_equal(A[i], B[i], EPSILON)) {
+			printf("Mismatch at %d: %s=%.8f, %s=%.8f (eps=%g)\n",
+				i, name_a, A[i], name_b, B[i], EPSILON);
+			return false;
+		}
+	}
+	printf("%s vs %s: numerically equal within epsilon=%g\n",
+		name_a, name_b, EPSILON);
+	return true;
+}
+```
+
+With this epsilon check, `C` vs. `XMM` and `C` vs. `YMM` both pass.
