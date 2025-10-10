@@ -254,7 +254,7 @@ XMM kernel: 128-bit, processes 4 floats/iter; n4 = n & ~3, scalar tail for n%4.
 
 YMM kernel: 256-bit, processes 8 floats/iter; n8 = n & ~7, scalar tail for n%8.
 
-use `and` to check boundary and save the reminder into another funcion
+use `and` to check boundary and save the reminder into another function
 Example if `ymm` to ` and     r12d, -8`,`xmm` to `and     r12d, -4`
 
 Example: n=1003 (YMM) with only last n%W elements non-zero (W=8) to validate reminder path.
