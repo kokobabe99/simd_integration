@@ -145,22 +145,14 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">nasm -f win64 asmfunc1.asm</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">asmfunc1.obj</Outputs>
     </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
     <CustomBuild Include="asmfunc2.asm">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">nasm -f win64 asmfunc2.asm</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">asmfunc2.obj</Outputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">nasm -f win64 asmfunc2.asm</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">asmfunc2.obj</Outputs>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="asmfunc4.asm">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">nasm -f win64 asmfunc4.asm</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">asmfunc4.obj</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">nasm -f win64 asmfunc4.asm</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">asmfunc4.obj</Outputs>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
