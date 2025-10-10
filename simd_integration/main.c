@@ -23,6 +23,7 @@ void init_data( float*, float*, int);
 void matvec_c(int, float*, float*, float*);
 double time_run(void (*func)(int, float*, float*, float*),
 	int n, float* A, float* X, float* Y);
+double compute_geometric_mean(double reference[], double exec_times[]);
 
 // Macros for n
 #define TWO_TO_TEN 1 << 10
@@ -140,8 +141,10 @@ int main() {
 	exec_time_ave_ymm /= RUNS;
 	exec_time_ave_xmm_v2 /= RUNS;
 
-
-
+	double exec_time_geom_c = compute_geometric_mean(exec_time_c, exec_time_c);
+	double exec_time_geom_x86_64 = compute_geometric_mean(exec_time_c,exec_time_x86_64);
+	double exec_time_geom_xmm = compute_geometric_mean(exec_time_c, exec_time_xmm_v2);
+	double exec_time_geom_ymm = compute_geometric_mean(exec_time_c, exec_time_ymm);
 
 
 
@@ -150,6 +153,12 @@ int main() {
 	printf("Average len %d execution time (x86): %f ms\n",n,exec_time_ave_x86_64);
 	printf("Average len %d execution time (xmm): %f ms\n",n,exec_time_ave_xmm_v2);
 	printf("Average len %d execution time (ymm): %f ms\n",n,exec_time_ave_ymm);
+
+	puts("\nUsing C kernel as reference for geometric mean:");
+	printf("Geometric mean len %d execution time (C  ): %f, %fx faster\n", n, exec_time_geom_c, 1/exec_time_geom_c);
+	printf("Geometric mean len %d execution time (x86): %f, %fx faster\n", n, exec_time_geom_x86_64, 1/exec_time_geom_x86_64);
+	printf("Geometric mean len %d execution time (xmm): %f, %fx faster\n", n, exec_time_geom_xmm, 1/exec_time_geom_xmm);
+	printf("Geometric mean len %d execution time (ymm): %f, %fx faster\n", n, exec_time_geom_ymm, 1/exec_time_geom_ymm);
 	//printf("Average execution time (xmm_v2): %f ms\n", exec_time_ave_xmm_v2);
 
 	return 0;
@@ -253,4 +262,12 @@ boolean compare_results(const char* name_a,  const float* A,
 	printf("%s vs %s: numerically equal within epsilon=%g\n",
 		name_a, name_b, EPSILON);
 	return true;
+}
+
+double compute_geometric_mean(double reference[], double exec_times[]) {
+	double product = 1;
+	for (int i = 0; i < RUNS; i++) {
+		product *= exec_times[i] / reference[i];
+	}
+	return pow(product, 1.0 / RUNS);
 }
