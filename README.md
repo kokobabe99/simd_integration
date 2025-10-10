@@ -190,11 +190,34 @@ double time_run(void (*func)(int,float*, float*, float*),int n, float* A, float*
 
 ```C
 
-     // Run and get execution time of each kernel function
-     exec_time_c[curr_run] = time_run(matvec_c, n, A, X, Y_c);
-     exec_time_x86_64[curr_run] = time_run(matvec_x86_64_asm, n, A, X, Y_x86_64);
-	exec_time_xmm[curr_run] = time_run(matvec_xmm_avx2_asm, n, A, X, Y_xmm);
-	exec_time_ymm[curr_run] = time_run(matvec_ymm_avx2_asm, n, A, X, Y_ymm);
+    		// Run and get execution time of each kernel function
+		exec_time_c[curr_run] = time_run(matvec_c, n, A, X, Y_c);
+		exec_time_x86_64[curr_run] = time_run(matvec_x86_64_asm, n, A, X, Y_x86_64);
+		exec_time_xmm[curr_run] = time_run(matvec_xmm_avx2_asm, n, A, X, Y_xmm);
+		exec_time_ymm[curr_run] = time_run(matvec_ymm_avx2_asm, n, A, X, Y_ymm);
+
+		exec_time_ave_c += exec_time_c[curr_run];
+		exec_time_ave_x86_64 += exec_time_x86_64[curr_run];
+		exec_time_ave_xmm += exec_time_xmm[curr_run];
+		exec_time_ave_ymm += exec_time_ymm[curr_run];
+
+
+		printf("Execution time (C  ): %.2f ms\n", exec_time_c[curr_run]);
+		printf("Execution time (x86): %.2f ms\n", exec_time_x86_64[curr_run]);
+		printf("Execution time (xmm): %.2f ms\n", exec_time_xmm[curr_run]);
+		printf("Execution time (ymm): %.2f ms\n", exec_time_ymm[curr_run]);
+```
+
+#### Geometric_mean
+
+```C
+double compute_geometric_mean(double reference[], double exec_times[]) {
+	double product = 1;
+	for (int i = 0; i < RUNS; i++) {
+		product *= exec_times[i] / reference[i];
+	}
+	return pow(product, 1.0 / RUNS);
+}
 ```
 
 ### Assembly XMM & YMM
