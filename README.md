@@ -86,7 +86,7 @@ Matrix sizes: n ∈ {1003,2^10,2^13,2^14} RUN in 30 times
 #define RUNS 10
 ```
 
-## Arithmetic means（ms）
+## Arithmetic means of execution times（ms）
 
 | n            |     C (ms) |   x86 (ms) |   XMM (ms) |  YMM (ms) | x86 Speedup VS C | XMM Speedup VS C | YMM Speedup VS C |
 | ------------ | ---------: | ---------: | ---------: | --------: | ---------------: | ---------------: | ---------------: |
@@ -95,7 +95,7 @@ Matrix sizes: n ∈ {1003,2^10,2^13,2^14} RUN in 30 times
 | 2^13 (8192)  |  8,456.979 |  7,992.419 |  2,766.485 | 2,726.288 |            1.06× |            3.06× |            3.10× |
 | 2^14 (16384) | 32,720.869 | 31,801.649 | 10,484.669 | 9,095.964 |            1.03× |            3.12× |            3.60× |
 
-## Geometric means
+## Geometric means of execution times using C kernel as reference
 
 | n            | C (factor) | x86 (factor) | XMM (factor) | YMM (factor) | x86 Speedup VS C | XMM Speedup VS C | YMM Speedup VS C |
 | ------------ | ---------: | -----------: | -----------: | -----------: | ---------------: | ---------------: | ---------------: |
@@ -131,7 +131,7 @@ Matrix sizes: n ∈ {1003,2^10,2^13,2^14} RUN in 30 times
 
 ![214](/docs/214.png)
 
-- how about 1003 (to testify Boundary-check) ?
+- how about 1003 (to test Boundary-check) ?
 
 ```
 //for n
@@ -331,7 +331,7 @@ boolean compare_results(const char* name_a,  const float* A,
 
 ## Analysis
 
-The SIMD YMM kernel consistently outperformed both the scalar (x86-64) and SIMD XMM implementations — achieving up to ~28× speedup compared to the baseline C version for small-to-medium matrices.
+The SIMD YMM kernel consistently outperformed both the scalar (x86-64) and SIMD XMM implementations — achieving up to ~20× speedup compared to the baseline C version for small-to-medium matrices.
 
 The SIMD kernels achieve significant acceleration because each instruction processes multiple data elements in parallel.
 While the scalar C implementation handles one float at a time, the XMM version processes 4 floats per iteration (128-bit), and the YMM version processes 8 floats per iteration (256-bit).
