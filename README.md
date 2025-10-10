@@ -11,7 +11,7 @@ contains the `kernels` in
 - x86 `SIMD` AVX2 assembly language using `XMM register`
 - x86 `SIMD` AVX2 assembly language using `YMM register`
 
-Each kernel is to perform a `matrix vector product`.matrix-vector product `y = A·x (single-precision)` in RUN times.
+Each kernel is to perform a `matrix vector product` using the given formula `y = A·x (single-precision)` in RUN times.
 
 ### Project Layout
 
@@ -21,8 +21,8 @@ Each kernel is to perform a `matrix vector product`.matrix-vector product `y = A
      ├── README.md
      ├── simd_integration
      │   ├── asmfunc1.asm          (x86)
-     │   ├── asmfunc3.asm          (SIMD YMM)
      │   ├── asmfunc2.asm          (SIMD XMM)
+     │   ├── asmfunc3.asm          (SIMD YMM)
      │   ├── main.c (main program)
      │   ├── simd_integration.vcxproj
      │   └── simd_integration.vcxproj.filters
@@ -331,7 +331,7 @@ boolean compare_results(const char* name_a,  const float* A,
 
 ## Analysis
 
-The SIMD YMM kernel consistently outperformed both the scalar (x86) and SIMD XMM implementations — achieving up to ~28× speedup compared to the baseline C version for small-to-medium matrices.
+The SIMD YMM kernel consistently outperformed both the scalar (x86-64) and SIMD XMM implementations — achieving up to ~28× speedup compared to the baseline C version for small-to-medium matrices.
 
 The SIMD kernels achieve significant acceleration because each instruction processes multiple data elements in parallel.
 While the scalar C implementation handles one float at a time, the XMM version processes 4 floats per iteration (128-bit), and the YMM version processes 8 floats per iteration (256-bit).
@@ -347,7 +347,9 @@ By chaining two `vhaddps` instructions, the kernel quickly reduces eight partial
 
 Overall, these operations allow the AVX2 version to fully exploit data-level parallelism while keeping all arithmetic within registers — leading to a 10+× speedup over the scalar baseline, depending on matrix size and memory alignment.
 
-`Cache Efficiency` SIMD kernels reuse contiguous memory regions effectively.Streaming access patterns benefit from hardware prefetchers, minimizing cache misses.
+`Cache Efficiency` SIMD kernels reuse contiguous memory regions effectively. Streaming access patterns benefit from hardware prefetchers, minimizing cache misses.
+
+Although the SIMD kernels exhibit a large speed increase compared to the C and x86-64 kernels, it should be noted that as the vector size `n` grows, the speedup gained decreases. Even though the relative order of `C > x86-64 > SIMD XMM > SIMD YMM` (in terms of execution time) does not change, it can be observed that the SIMD YMM goes from a large ~20x speedup at `n = 1003` down to a ~3.5x speedup at `n = 16384`. From research, one possible reason for this is a memory bottleneck; for smaller arrays, the data can fit within the cache and thus it is bounded by computation time, allowing the SIMD operations to be performed quickly. As n grows, it reaches a point that the data can no longer fit in the cache, and the process of retreiving data from memory becomes the bottleneck of the program rather than the computations themselves. Regardless, using SIMD always outperforms the "traditional" kernels in all cases and should be used if possible.  
 
 ---
 
