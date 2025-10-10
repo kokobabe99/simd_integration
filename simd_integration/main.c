@@ -55,7 +55,7 @@ int main() {
 
 	init_data( A, X,n);
 
-	printf("Vector size n: %d\n", n);
+	printf("Vector size n: %d\n\n", n);
 
 
 
@@ -66,6 +66,7 @@ int main() {
 		// Check if Z_c and Z_asm are equal
 		// To speed up process, only check first 10 elements
 
+		printf("========== Run %2d ==========\n", curr_run+1);
 
 		printf("X: ");
 		print_array(16, X);
@@ -101,10 +102,11 @@ int main() {
 		//print_first_last("kernel (ymm):", Y_ymm, n);
 
 
-		printf("Execution time (C  ): %f ms\n", exec_time_c[curr_run]);
-		printf("Execution time (x86): %f ms\n", exec_time_x86_64[curr_run]);
-		printf("Execution time (xmm): %f ms\n", exec_time_xmm_v2[curr_run]);
-		printf("Execution time (ymm): %f ms\n", exec_time_ymm[curr_run]);
+		printf("Execution time (C  ): %.2f ms\n", exec_time_c[curr_run]);
+		printf("Execution time (x86): %.2f ms\n", exec_time_x86_64[curr_run]);
+		printf("Execution time (xmm): %.2f ms\n", exec_time_xmm_v2[curr_run]);
+		printf("Execution time (ymm): %.2f ms\n", exec_time_ymm[curr_run]);
+		puts("");
 
 		boolean res = compare_results("C", Y_c, "X86",Y_x86_64, n);
 		if (res) {
@@ -147,18 +149,20 @@ int main() {
 	double exec_time_geom_ymm = compute_geometric_mean(exec_time_c, exec_time_ymm);
 
 
-
+	puts("============================\n");
 	puts("All runs finished successfully with equal output.\n");
-	printf("Average len %d execution time (C  ): %f ms\n",n,exec_time_ave_c);
-	printf("Average len %d execution time (x86): %f ms\n",n,exec_time_ave_x86_64);
-	printf("Average len %d execution time (xmm): %f ms\n",n,exec_time_ave_xmm_v2);
-	printf("Average len %d execution time (ymm): %f ms\n",n,exec_time_ave_ymm);
 
-	puts("\nUsing C kernel as reference for geometric mean:");
-	printf("Geometric mean len %d execution time (C  ): %f, %fx faster\n", n, exec_time_geom_c, 1/exec_time_geom_c);
-	printf("Geometric mean len %d execution time (x86): %f, %fx faster\n", n, exec_time_geom_x86_64, 1/exec_time_geom_x86_64);
-	printf("Geometric mean len %d execution time (xmm): %f, %fx faster\n", n, exec_time_geom_xmm, 1/exec_time_geom_xmm);
-	printf("Geometric mean len %d execution time (ymm): %f, %fx faster\n", n, exec_time_geom_ymm, 1/exec_time_geom_ymm);
+	printf("Arithmetic means of execution times for vector length %d\n", n);
+	printf("[C  ]: %.3f ms\n",exec_time_ave_c);
+	printf("[x86]: %.3f ms\n",exec_time_ave_x86_64);
+	printf("[xmm]: %.3f ms\n",exec_time_ave_xmm_v2);
+	printf("[ymm]: %.3f ms\n",exec_time_ave_ymm);
+
+	printf("\nGeometric means of execution times using C kernel as reference for vector length %d\n", n);
+	printf("[C  ]: %.4f, %.4fx faster\n", exec_time_geom_c, 1/exec_time_geom_c);
+	printf("[x86]: %.4f, %.4fx faster\n", exec_time_geom_x86_64, 1/exec_time_geom_x86_64);
+	printf("[xmm]: %.4f, %.4fx faster\n", exec_time_geom_xmm, 1/exec_time_geom_xmm);
+	printf("[ymm]: %.4f, %.4fx faster\n", exec_time_geom_ymm, 1/exec_time_geom_ymm);
 	//printf("Average execution time (xmm_v2): %f ms\n", exec_time_ave_xmm_v2);
 
 	return 0;
@@ -240,13 +244,13 @@ boolean compare_results(const char* name_a,  const float* A,
 	const char* name_b, const float* B, int n) {
 	int tail_start = n > 3 ? n - 3 : 0;
 
-	printf("kernel (%s) first3: ", name_a);
+	printf("kernel (%-3s) first3: ", name_a);
 	for (int i = 0; i < 3 && i < n; ++i) printf("%.4f ", A[i]);
 	printf(" | last3: ");
 	for (int i = tail_start; i < n; ++i) printf("%.4f ", A[i]);
 	printf("\n");
 
-	printf("kernel (%s) first3: ", name_b);
+	printf("kernel (%-3s) first3: ", name_b);
 	for (int i = 0; i < 3 && i < n; ++i) printf("%.4f ", B[i]);
 	printf(" | last3: ");
 	for (int i = tail_start; i < n; ++i) printf("%.4f ", B[i]);
