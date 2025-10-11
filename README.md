@@ -331,9 +331,9 @@ boolean compare_results(const char* name_a,  const float* A,
 
 ## Analysis
 
-The SIMD YMM kernel consistently outperformed both the scalar (x86-64) and SIMD XMM implementations — achieving up to ~20× speedup compared to the baseline C version for small-to-medium matrices.
+The SIMD YMM kernel consistently outperformed both the scalar (x86-64) and SIMD XMM implementations — achieving up to ~19× speedup compared to the baseline C version for small-to-medium matrices.
 
-The SIMD kernels achieve significant acceleration because each instruction processes multiple data elements in parallel.
+The SIMD kernels achieve significant acceleration because each instruction processes multiple data elements in parallel. Somehow it reduces the `Cycle Per instruction(CPI)` and means CPU time would be less.
 While the scalar C implementation handles one float at a time, the XMM version processes 4 floats per iteration (128-bit), and the YMM version processes 8 floats per iteration (256-bit).
 This reduces loop iterations, branch overhead, and instruction decoding, allowing the CPU’s wide vector pipelines and execution units to operate at full efficiency.
 In addition, SIMD instructions perform contiguous memory accesses, improving cache locality and prefetching behavior.
